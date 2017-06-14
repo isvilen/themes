@@ -1,28 +1,39 @@
 -module(themes).
 
--export([ default_dirs/0
+-export([ available/0
+        , load/0
+        , load/1
+        , directories/0
         , standard_icon_names/1
         ]).
 
-
--type context() :: actions
-                 | animations
-                 | applications
-                 | categories
-                 | devices
-                 | emblems
-                 | emotes
-                 | international
-                 | mime_types
-                 | places
-                 | status
-                 | other.
+-include("themes.hrl").
+-include_lib("kernel/include/file.hrl").
 
 -export_type([context/0]).
 
 
--spec default_dirs() -> [file:name()].
-default_dirs() ->
+-spec available() -> [string()].
+available() ->
+    [Id || {Id, _, _} <- themes()].
+
+
+-spec load() -> {ok, #theme{}} | {error, Reason :: any}.
+load() ->
+    Themes = themes(),
+    case load(?DEFAULT_THEME, Themes) of
+        {ok, _} = Result -> Result;
+        _                -> load(?FALLBACK_THEME, Themes)
+    end.
+
+
+-spec load(Id :: string()) -> {ok, #theme{}} | {error, Reason :: any}.
+load(Id) ->
+    load(Id, themes()).
+
+
+-spec directories() -> [file:name()].
+directories() ->
     config_dirs() ++ home_dir() ++ xdg_data_dirs() ++ ["/usr/share/pixmaps"].
 
 
@@ -243,6 +254,10 @@ standard_icon_names(emotes) ->
     , <<"face-wink">>
     , <<"face-worried">> ];
 
+standard_icon_names(file_systems) ->
+    [
+    ];
+
 standard_icon_names(international) ->
     [ <<"flag-">> ]; % ++ ISO 3166 two-letter country code in lowercase form
 
@@ -335,6 +350,9 @@ standard_icon_names(status) ->
     , <<"weather-snow">>
     , <<"weather-storm">> ];
 
+standard_icon_names(stock) ->
+    [];
+
 standard_icon_names(other) ->
     [];
 
@@ -357,4 +375,54 @@ xdg_data_dirs() ->
     case os:getenv("XDG_DATA_DIRS") of
         false -> [];
         Vs -> [filename:join([V, "icons"]) || V <- string:lexemes(Vs, [$:])]
+    end.
+
+
+themes() ->
+    Acc = lists:foldl(fun themes/2, #{}, directories()),
+    Themes = [{Id, Idx, Ds} || {Id, {Idx, Ds}} <- maps:to_list(Acc)
+                             , Idx /= undefined],
+    lists:keysort(1, Themes).
+
+
+themes(Dir, Acc) ->
+    case file:list_dir(Dir) of
+        {ok, Ids} ->
+            Vs0 = [{Id, IdDir} || Id <- Ids, begin
+                                                 IdDir = filename:join([Dir,Id]),
+                                                 filelib:is_dir(IdDir)
+                                             end],
+            lists:foldl(fun themes_add/2, Acc, Vs0);
+        {error, _} ->
+            Acc
+    end.
+
+
+themes_add({Name, Dir}, Acc) ->
+    IdxFile = filename:join([Dir, "index.theme"]),
+    Idx0 = case filelib:is_regular(IdxFile) of
+               true -> IdxFile;
+               false -> undefined
+           end,
+    case maps:get(Name, Acc, undefined) of
+        undefined ->
+            Acc#{Name => {Idx0, [Dir]}};
+        {undefined, Dirs} ->
+            Acc#{Name := {Idx0, Dirs ++ [Dir]}};
+        {Idx1, Dirs} ->
+            Acc#{Name := {Idx1, Dirs ++ [Dir]}}
+    end.
+
+
+load(Id, Themes) ->
+    case lists:keytake(Id, 1, Themes) of
+        {value, {_, Idx, Dirs}, Themes1} ->
+            case themes_data:index(Id, Idx, fun (V) -> load(V, Themes1) end) of
+                {ok, #theme{roots = Roots}=Theme} ->
+                    {ok, Theme#theme{roots = Dirs ++ Roots}};
+                Error ->
+                    Error
+            end;
+        false ->
+            {error, not_found}
     end.
