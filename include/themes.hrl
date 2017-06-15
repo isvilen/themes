@@ -14,6 +14,20 @@
                  | other.
 
 
+-record(cursor_image,{ width :: integer()
+                     , height :: integer()
+                     , x_hot :: integer()
+                     , y_hot :: integer()
+                     , delay :: integer()
+                     , data :: binary()
+                     }).
+
+-record(cursor,{ id :: string()
+               , size :: integer()
+               , images :: [#cursor_image{}]
+               , aliases = [] :: [string()]
+               }).
+
 -record(theme_directory,{ directory :: file:filename()
                         , size :: integer()
                         , scale :: integer()

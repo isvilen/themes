@@ -3,6 +3,8 @@
 -export([ available/0
         , load/0
         , load/1
+        , cursors/2
+        , cursor/3
         , directories/0
         , standard_icon_names/1
         ]).
@@ -30,6 +32,17 @@ load() ->
 -spec load(Id :: string()) -> {ok, #theme{}} | {error, Reason :: any}.
 load(Id) ->
     load(Id, themes()).
+
+
+-spec cursors(Theme :: #theme{}, Size :: integer()) -> [#cursor{}].
+cursors(Theme, Size) ->
+    themes_cursor:load(Theme, Size).
+
+
+-spec cursor(Theme :: #theme{}, Id :: string(), Size :: integer())
+            -> #cursor{} | undefined.
+cursor(Theme, Id, Size) ->
+    themes_cursor:load(Theme, Id, Size).
 
 
 -spec directories() -> [file:name()].
