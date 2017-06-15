@@ -28,6 +28,22 @@
                , aliases = [] :: [string()]
                }).
 
+
+-record(icon,{ id :: string()
+             , size :: integer()
+             , max_size :: integer()
+             , min_size :: integer()
+             , context :: context()
+             , type :: png | svg | xpm
+             , data :: binary()
+             }).
+
+-record(icon_fallback,{ id :: string()
+                      , type :: png | svg | xpm
+                      , data :: binary()
+                      }).
+
+
 -record(theme_directory,{ directory :: file:filename()
                         , size :: integer()
                         , scale :: integer()

@@ -5,6 +5,8 @@
         , load/1
         , cursors/2
         , cursor/3
+        , icon/4
+        , icon/5
         , directories/0
         , standard_icon_names/1
         ]).
@@ -43,6 +45,30 @@ cursors(Theme, Size) ->
             -> #cursor{} | undefined.
 cursor(Theme, Id, Size) ->
     themes_cursor:load(Theme, Id, Size).
+
+
+-spec icon(Theme, Id, Size, Scale) -> Result | undefined
+      when Theme :: #theme{},
+           Id ::string(),
+           Size :: integer(),
+           Scale :: integer(),
+           Result :: #icon{} | #icon_fallback{}.
+icon(Theme, Id, Size, Scale) ->
+    icon(Theme, Id, Size, Scale, [png, svg, xpm]).
+
+
+-spec icon(Theme, Id, Size, Scale, Types) -> Result | undefined
+      when Theme :: #theme{},
+           Id :: string(),
+           Size :: integer(),
+           Scale :: integer(),
+           Types :: [png | svg | xpm],
+           Result :: #icon{} | #icon_fallback{}.
+icon(Theme, Id, Size, Scale, Types) ->
+    case themes_icon:lookup(Theme, Id, Size, Scale, Types) of
+        undefined -> themes_icon:lookup_fallback(Id, directories(), Types);
+        Icon      -> Icon
+    end.
 
 
 -spec directories() -> [file:name()].
