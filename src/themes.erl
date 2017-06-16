@@ -66,8 +66,10 @@ icon(Theme, Id, Size, Scale) ->
            Result :: #icon{} | #icon_fallback{}.
 icon(Theme, Id, Size, Scale, Types) ->
     case themes_icon:lookup(Theme, Id, Size, Scale, Types) of
-        undefined -> themes_icon:lookup_fallback(Id, directories(), Types);
-        Icon      -> Icon
+        undefined ->
+            themes_icon:lookup_fallback(Id, directories(), Types);
+        Icon ->
+            Icon
     end.
 
 
@@ -456,12 +458,19 @@ themes_add({Name, Dir}, Acc) ->
 load(Id, Themes) ->
     case lists:keytake(Id, 1, Themes) of
         {value, {_, Idx, Dirs}, Themes1} ->
-            case themes_data:index(Id, Idx, fun (V) -> load(V, Themes1) end) of
-                {ok, #theme{roots = Roots}=Theme} ->
-                    {ok, Theme#theme{roots = Dirs ++ Roots}};
-                Error ->
-                    Error
-            end;
+            load_index(Id, Idx, Dirs, Themes1);
         false ->
             {error, not_found}
+    end.
+
+
+load_index(Id, Idx, Roots0, Themes) ->
+    case themes_data:index(Id, Idx, fun (V) -> load(V, Themes) end) of
+        {ok, #theme{roots = Roots1, directories = Dirs, cache = Cache1}=T} ->
+            Cache0 = themes_icon:cache(Roots0, Dirs),
+            {ok, T#theme{roots = Roots0 ++ Roots1
+                        ,cache = Cache0 ++ Cache1
+                        }};
+        Error ->
+            Error
     end.

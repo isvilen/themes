@@ -62,6 +62,7 @@
               , roots = [] :: [file:filename()]
               , directories :: [#theme_directory{}]
               , inherits :: #theme{} | undefined
+              , cache = [] :: [{file:filename(), term()}]
               }).
 
 -define(DEFAULT_THEME,"default").
