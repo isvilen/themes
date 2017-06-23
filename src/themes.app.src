@@ -6,7 +6,7 @@
    [kernel,
     stdlib
    ]},
-  {env,[]},
+  {env,[{directories, [home, xdg_data, "/usr/share/pixmaps"]}]},
   {modules, []},
 
   {maintainers, []},

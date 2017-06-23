@@ -75,7 +75,8 @@ icon(Theme, Id, Size, Scale, Types) ->
 
 -spec directories() -> [file:name()].
 directories() ->
-    config_dirs() ++ home_dir() ++ xdg_data_dirs() ++ ["/usr/share/pixmaps"].
+    Dirs = application:get_env(themes, directories, [xdg_data]),
+    lists:foldr(fun directory/2, [], Dirs).
 
 
 -spec standard_icon_names(context()) -> [Name :: binary()].
@@ -401,22 +402,23 @@ standard_icon_names(_) ->
     error(badarg).
 
 
-config_dirs() ->
-    application:get_env(themes, dirs, []).
-
-
-home_dir() ->
+directory(home, Acc) ->
     case os:getenv("HOME") of
-        false -> [];
-        V -> [filename:join([V, ".icons"])]
-    end.
+        false -> Acc;
+        V     -> [filename:join([V, ".icons"]) | Acc]
+    end;
 
-
-xdg_data_dirs() ->
+directory(xdg_data, Acc) ->
     case os:getenv("XDG_DATA_DIRS") of
-        false -> [];
-        Vs -> [filename:join([V, "icons"]) || V <- string:lexemes(Vs, [$:])]
-    end.
+        false ->
+            Acc;
+        Vs ->
+            Dirs = string:lexemes(Vs, [$:]),
+            [filename:join([V, "icons"]) || V <- Dirs] ++ Acc
+    end;
+
+directory(Dir, Acc) when is_list(Dir) ->
+    [Dir | Acc].
 
 
 themes() ->
